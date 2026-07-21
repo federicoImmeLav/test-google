@@ -1,0 +1,7 @@
+{
+  "name": "test-google-login-worker",
+  "private": true,
+  "dependencies": {
+    "jose": "^5.9.6"
+  }
+}

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Test login Google Workspace</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<div id="app">Caricamento...</div>
+
+<script>
+const WORKER_URL = "https://test-google-login.federico-pozzi.workers.dev";
+
+const CLIENT_ID = "618251455080-vr1d5440vm2ifmp7p8voo9hec56avc2q.apps.googleusercontent.com";
+
+const app = document.getElementById("app");
+
+function showLoggedIn() {
+  app.innerHTML = "<h1>Benvenuto con Google</h1>";
+}
+
+function showLoginButton(message) {
+  app.innerHTML =
+    (message ? `<p>${message}</p>` : "") +
+    '<div id="g_id_onload" data-client_id="' + CLIENT_ID + '" data-callback="handleCredentialResponse"></div>' +
+    '<div class="g_id_signin" data-type="standard"></div>';
+  if (window.google) {
+    google.accounts.id.initialize({
+      client_id: CLIENT_ID,
+      callback: handleCredentialResponse
+    });
+    google.accounts.id.renderButton(
+      document.querySelector(".g_id_signin"),
+      { type: "standard" }
+    );
+  }
+}
+
+async function handleCredentialResponse(response) {
+  app.innerHTML = "Verifica in corso...";
+  try {
+    const res = await fetch(WORKER_URL + "/verify", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential: response.credential })
+    });
+    if (res.ok) {
+      showLoggedIn();
+    } else {
+      showLoginButton("Accesso negato: devi usare l'account Google Workspace della scuola.");
+    }
+  } catch (err) {
+    showLoginButton("Errore di rete durante la verifica.");
+  }
+}
+
+async function checkSession() {
+  try {
+    const res = await fetch(WORKER_URL + "/session", { credentials: "include" });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.authenticated) {
+        showLoggedIn();
+        return;
+      }
+    }
+  } catch (err) {
+    // ignora, mostra comunque il bottone di login
+  }
+  showLoginButton();
+}
+
+window.onload = checkSession;
+</script>
+
+</body>
+</html>
